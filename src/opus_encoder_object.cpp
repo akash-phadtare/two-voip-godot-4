@@ -437,6 +437,10 @@ void TwovoipOpusEncoder::process_denoiser(float* prepared_audio_chunk) {
 
 PackedVector2Array TwovoipOpusEncoder::get_current_chunk() const {
     PackedVector2Array frames;
+    // The editor reads this property on a default-constructed encoder; the
+    // ring is empty then, and the modulo below would divide by zero.
+    if (!initialized || audio_ringbuffer_size_chunks <= 0)
+        return frames;
     const float* prepared_audio_chunk = (const float*)prepared_audio_ringbuffer.ptr() + (audio_ringbuffer_index % audio_ringbuffer_size_chunks) * output_chunk_size * channels;
     frames.resize(output_chunk_size);
     for (int frame = 0; frame < output_chunk_size; frame++) {
@@ -509,6 +513,10 @@ PackedByteArray TwovoipOpusEncoder::encode_chunk(const PackedByteArray& prefix_b
     }
     if (chunk_offset_back < 0) {
         UtilityFunctions::printerr("chunk_offset_back must be positive or zero");
+        return PackedByteArray();
+    }
+    if (!initialized || audio_ringbuffer_size_chunks <= 0) {
+        UtilityFunctions::printerr("TwovoipOpusEncoder not initialized");
         return PackedByteArray();
     }
 
